@@ -30,6 +30,24 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "Sarjan Dev")
+        }
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".staging"
+            resValue("string", "app_name", "Sarjan Staging")
+        }
+        create("prod") {
+            dimension = "environment"
+            resValue("string", "app_name", "Sarjan Construction")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
@@ -41,4 +59,23 @@ android {
 
 flutter {
     source = "../.."
+}
+
+afterEvaluate {
+    tasks.findByName("assembleDebug")?.doLast {
+        val flutterApkDir = file("${project.rootDir}/../build/app/outputs/flutter-apk")
+        val devDebugApk = file("$flutterApkDir/app-dev-debug.apk")
+        val defaultDebugApk = file("$flutterApkDir/app-debug.apk")
+        if (devDebugApk.exists()) {
+            devDebugApk.copyTo(defaultDebugApk, overwrite = true)
+        }
+    }
+    tasks.findByName("assembleRelease")?.doLast {
+        val flutterApkDir = file("${project.rootDir}/../build/app/outputs/flutter-apk")
+        val prodReleaseApk = file("$flutterApkDir/app-prod-release.apk")
+        val defaultReleaseApk = file("$flutterApkDir/app-release.apk")
+        if (prodReleaseApk.exists()) {
+            prodReleaseApk.copyTo(defaultReleaseApk, overwrite = true)
+        }
+    }
 }

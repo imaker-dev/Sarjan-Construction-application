@@ -1,30 +1,249 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sarjan_construction/core/config/app_urls.dart';
+import 'package:sarjan_construction/core/theme/app_color_scheme.dart';
+import 'package:sarjan_construction/core/theme/bloc/theme_bloc.dart';
+import 'package:sarjan_construction/core/utils/size_util.dart';
+import 'package:sarjan_construction/core/widgets/app_button.dart';
+import 'package:sarjan_construction/core/widgets/app_text_field.dart';
+import 'package:sarjan_construction/features/auth/domain/models/user.dart';
+import 'package:sarjan_construction/features/auth/domain/repositories/auth_repository.dart';
+import 'package:sarjan_construction/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:sarjan_construction/features/auth/presentation/screens/login_screen.dart';
+import 'package:sarjan_construction/features/home/presentation/screens/home_screen.dart';
+import 'package:sarjan_construction/features/home/presentation/screens/main_nav_screen.dart';
+import 'package:sarjan_construction/features/home/presentation/screens/theme_selection_screen.dart';
 
-import 'package:sarjan_construction/main.dart';
+class _FakeAuthRepository implements AuthRepository {
+  @override
+  Future<AuthUser?> getCurrentUser() async => null;
+
+  @override
+  Future<bool> isAuthenticated() async => false;
+
+  @override
+  Future<AuthUser> login({required String email, required String password}) async {
+    return const AuthUser(
+      id: '1',
+      name: 'Admin',
+      email: 'admin@imaker.com',
+      role: 'admin',
+    );
+  }
+
+  @override
+  Future<void> logout() async {}
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('AppUrls Configuration Tests', () {
+    test('AppUrls contains valid dev, staging and prod base URLs and core endpoints', () {
+      expect(AppUrls.devBaseUrl, contains('dev-api'));
+      expect(AppUrls.stagingBaseUrl, contains('staging-api'));
+      expect(AppUrls.prodBaseUrl, contains('api.sarjanconstruction.com'));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      expect(AppUrls.login, equals('/auth/login'));
+      expect(AppUrls.logout, equals('/auth/logout'));
+      expect(AppUrls.privacyPolicy, contains('privacy'));
+    });
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  group('Multi-Color Themes Tests', () {
+    test('Themes match extracted PDF brand tokens', () {
+      final violet = AppColorTheme.fromName('violet');
+      expect(violet, equals(AppColorTheme.violet));
+      expect(violet.primary, equals(const Color(0xFF753CEF)));
+      expect(violet.secondary, equals(const Color(0xFFB63CEF)));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      final blue = AppColorTheme.fromName('blue');
+      expect(blue.primary, equals(const Color(0xFF5D87FF)));
+
+      final emerald = AppColorTheme.fromName('emerald');
+      expect(emerald.primary, equals(const Color(0xFF10B981)));
+
+      final rose = AppColorTheme.fromName('rose');
+      expect(rose.primary, equals(const Color(0xFFE11D48)));
+
+      final orange = AppColorTheme.fromName('orange');
+      expect(orange.primary, equals(const Color(0xFFF97316)));
+
+      expect(AppColorTheme.values.length, equals(5));
+
+      final fallback = AppColorTheme.fromName('unknown');
+      expect(fallback, equals(AppColorTheme.violet));
+    });
+  });
+
+  group('HomeScreen & SizeUtil Tests', () {
+    testWidgets('HomeScreen renders string Imaker Cunstuction', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: HomeScreen(),
+        ),
+      );
+
+      expect(find.text('Imaker Cunstuction'), findsOneWidget);
+    });
+
+    testWidgets('SizeUtil provides dynamic height, width and padding', (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      late double calculatedW;
+      late double calculatedH;
+      late EdgeInsets calculatedPadding;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              calculatedW = context.w(50);
+              calculatedH = context.h(25);
+              calculatedPadding = context.pAll(5);
+              return Container();
+            },
+          ),
+        ),
+      );
+
+      expect(calculatedW, equals(400.0));
+      expect(calculatedH, equals(300.0));
+      expect(calculatedPadding, equals(const EdgeInsets.all(40.0)));
+    });
+  });
+
+  group('Reusable Dynamic Widgets Tests', () {
+    testWidgets('AppButton renders and handles tap and loading state', (tester) async {
+      bool tapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppButton(
+              text: 'Click Me',
+              onPressed: () => tapped = true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Click Me'), findsOneWidget);
+      await tester.tap(find.text('Click Me'));
+      expect(tapped, isTrue);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AppButton(
+              text: 'Click Me',
+              isLoading: true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('AppTextField renders and handles password toggle', (tester) async {
+      final controller = TextEditingController(text: 'secret');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppTextField(
+              controller: controller,
+              labelText: 'Password',
+              isPassword: true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Password'), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+    });
+
+    testWidgets('LoginScreen renders with branding, textfields and submit button', (tester) async {
+      final authBloc = AuthBloc(authRepository: _FakeAuthRepository());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<AuthBloc>.value(
+            value: authBloc,
+            child: const LoginScreen(),
+          ),
+        ),
+      );
+
+      expect(find.text('Imaker Construction'), findsOneWidget);
+      expect(find.text('Email Address'), findsOneWidget);
+      expect(find.text('Password'), findsOneWidget);
+      expect(find.text('Sign In'), findsOneWidget);
+    });
+  });
+
+  group('Theme Selection UI Tests', () {
+    testWidgets('ThemeSelectionScreen renders all 5 theme banners with ACTIVE/SELECT labels', (tester) async {
+      final themeBloc = ThemeBloc();
+
+      await tester.pumpWidget(
+        BlocProvider<ThemeBloc>.value(
+          value: themeBloc,
+          child: const MaterialApp(
+            home: ThemeSelectionScreen(),
+          ),
+        ),
+      );
+
+      expect(find.text('SELECT THEME'), findsOneWidget);
+      expect(find.text('VIOLET'), findsOneWidget);
+      expect(find.text('BLUE'), findsOneWidget);
+      expect(find.text('EMERALD'), findsOneWidget);
+      expect(find.text('ROSE'), findsOneWidget);
+      expect(find.text('ORANGE'), findsOneWidget);
+      expect(find.text('ACTIVE'), findsOneWidget);
+
+      // Tap on EMERALD to switch theme
+      await tester.tap(find.text('EMERALD'));
+      await tester.pumpAndSettle();
+
+      expect(themeBloc.state.colorTheme, equals(AppColorTheme.emerald));
+    });
+
+    testWidgets('SettingsTab shows Color Theme container and opens ThemeSelectionScreen', (tester) async {
+      final themeBloc = ThemeBloc();
+      final authBloc = AuthBloc(authRepository: _FakeAuthRepository());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<ThemeBloc>.value(value: themeBloc),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+          ],
+          child: const MaterialApp(
+            home: SettingsTab(),
+          ),
+        ),
+      );
+
+      expect(find.text('Color Theme'), findsOneWidget);
+      expect(find.text('Active: Violet (Default)'), findsOneWidget);
+
+      // Tap the Color Theme container
+      await tester.tap(find.text('Color Theme'));
+      await tester.pumpAndSettle();
+
+      // Should have pushed ThemeSelectionScreen
+      expect(find.byType(ThemeSelectionScreen), findsOneWidget);
+      expect(find.text('SELECT THEME'), findsOneWidget);
+    });
   });
 }
