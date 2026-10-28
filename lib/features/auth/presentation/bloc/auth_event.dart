@@ -24,3 +24,13 @@ class LoginSubmitted extends AuthEvent {
 class LogoutSubmitted extends AuthEvent {
   const LogoutSubmitted();
 }
+
+class SwitchUserRole extends AuthEvent {
+  final String role;
+
+  const SwitchUserRole(this.role);
+
+  @override
+  List<Object?> get props => [role];
+}
+

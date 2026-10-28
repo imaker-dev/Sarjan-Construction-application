@@ -20,12 +20,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    final user = AuthUser(
+    final baseOfficer = AuthUser.forRole(UserRole.safetyOfficer);
+    final user = baseOfficer.copyWith(
       id: 'user_default',
-      name: email.split('@').first,
+      name: email.contains('@') ? email.split('@').first : 'Rajesh Patel',
       email: email,
-      role: 'Engineer',
-      permissions: const [],
     );
 
     return (

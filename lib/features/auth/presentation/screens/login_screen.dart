@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sarjan_construction/core/utils/size_util.dart';
 import 'package:sarjan_construction/core/widgets/app_button.dart';
 import 'package:sarjan_construction/core/widgets/app_text_field.dart';
+import 'package:sarjan_construction/features/auth/domain/models/user.dart';
 import 'package:sarjan_construction/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:sarjan_construction/features/auth/presentation/bloc/auth_event.dart';
 import 'package:sarjan_construction/features/auth/presentation/bloc/auth_state.dart';
@@ -128,6 +129,58 @@ class _LoginScreenState extends State<LoginScreen> {
                         isLoading: state.isLoading,
                         onPressed: _handleLogin,
                       ),
+                      const SizedBox(height: 24),
+
+                      // Quick Demo Role Presets
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              'OR QUICK SIGN-IN AS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: UserRole.values.map((role) {
+                          return ActionChip(
+                            avatar: Icon(
+                              _getRoleIcon(role),
+                              size: 15,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(
+                              role.label,
+                              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                            ),
+                            onPressed: () {
+                              final template = AuthUser.forRole(role);
+                              _emailController.text = template.email;
+                              _passwordController.text = 'password123';
+                              context.read<AuthBloc>().add(
+                                    LoginSubmitted(
+                                      email: template.email,
+                                      password: 'password123',
+                                    ),
+                                  );
+                            },
+                          );
+                        }).toList(),
+                      ),
                     ],
                   ),
                 ),
@@ -138,4 +191,22 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  IconData _getRoleIcon(UserRole role) {
+    switch (role) {
+      case UserRole.safetyOfficer:
+        return Icons.verified_user_rounded;
+      case UserRole.safetySupervisor:
+        return Icons.supervisor_account_rounded;
+      case UserRole.safetyManager:
+        return Icons.shield_rounded;
+      case UserRole.projectInCharge:
+        return Icons.star_rounded;
+      case UserRole.siteEngineer:
+        return Icons.engineering_rounded;
+      case UserRole.admin:
+        return Icons.admin_panel_settings_rounded;
+    }
+  }
 }
+

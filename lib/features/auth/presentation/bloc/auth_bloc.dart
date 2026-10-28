@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sarjan_construction/features/auth/domain/models/user.dart';
 import 'package:sarjan_construction/features/auth/domain/repositories/auth_repository.dart';
 import 'package:sarjan_construction/features/auth/presentation/bloc/auth_event.dart';
 import 'package:sarjan_construction/features/auth/presentation/bloc/auth_state.dart';
@@ -12,6 +13,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<CheckAuthStatus>(_onCheckAuthStatus);
     on<LoginSubmitted>(_onLoginSubmitted);
     on<LogoutSubmitted>(_onLogoutSubmitted);
+    on<SwitchUserRole>(_onSwitchUserRole);
+  }
+
+  void _onSwitchUserRole(
+    SwitchUserRole event,
+    Emitter<AuthState> emit,
+  ) {
+    final newRole = UserRole.fromString(event.role);
+    final newUser = AuthUser.forRole(newRole);
+    emit(state.copyWith(
+      status: AuthStatus.authenticated,
+      user: newUser,
+    ));
   }
 
   Future<void> _onCheckAuthStatus(

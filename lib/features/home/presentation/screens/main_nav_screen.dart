@@ -24,6 +24,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   final List<Widget> _pages = const [
     HomeScreen(),
+    _PlaceholderScreen(title: 'Workforce', icon: Icons.badge_outlined),
+    _PlaceholderScreen(title: 'Safety', icon: Icons.health_and_safety_outlined),
+    _PlaceholderScreen(title: 'Tasks', icon: Icons.assignment_outlined),
     SettingsTab(),
   ];
 
@@ -40,17 +43,80 @@ class _MainNavScreenState extends State<MainNavScreen> {
             _currentIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            label: 'Settings',
+            icon: Icon(Icons.badge_outlined),
+            label: 'Workforce',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.health_and_safety_outlined),
+            label: 'Safety',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_outlined),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz_rounded),
+            label: 'More',
           ),
         ],
         selectedItemColor: theme.colorScheme.primary,
+      ),
+    );
+  }
+}
+
+class _PlaceholderScreen extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const _PlaceholderScreen({
+    required this.title,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 52,
+              color: theme.colorScheme.primary.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '$title Module',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Planned for next release phase',
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

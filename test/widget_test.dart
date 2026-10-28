@@ -14,6 +14,12 @@ import 'package:sarjan_construction/features/auth/presentation/screens/login_scr
 import 'package:sarjan_construction/features/home/presentation/screens/home_screen.dart';
 import 'package:sarjan_construction/features/home/presentation/screens/main_nav_screen.dart';
 import 'package:sarjan_construction/features/home/presentation/screens/theme_selection_screen.dart';
+import 'package:sarjan_construction/features/safety_dashboard/data/repositories/safety_dashboard_repository_impl.dart';
+import 'package:sarjan_construction/features/safety_dashboard/presentation/bloc/safety_dashboard_bloc.dart';
+import 'package:sarjan_construction/features/safety_dashboard/presentation/bloc/safety_dashboard_event.dart';
+
+import 'package:sarjan_construction/features/safety_dashboard/presentation/screens/safety_alerts_screen.dart';
+import 'package:sarjan_construction/features/safety_dashboard/presentation/screens/today_activities_screen.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   @override
@@ -76,14 +82,57 @@ void main() {
   });
 
   group('HomeScreen & SizeUtil Tests', () {
-    testWidgets('HomeScreen renders string Imaker Cunstuction', (tester) async {
+    testWidgets('HomeScreen renders Safety Dashboard and navigates to separate screens', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final themeBloc = ThemeBloc();
+      final authBloc = AuthBloc(authRepository: _FakeAuthRepository());
+      final safetyBloc = SafetyDashboardBloc(repository: SafetyDashboardRepositoryImpl())
+        ..add(const LoadSafetyDashboard());
+
       await tester.pumpWidget(
-        const MaterialApp(
-          home: HomeScreen(),
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<ThemeBloc>.value(value: themeBloc),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SafetyDashboardBloc>.value(value: safetyBloc),
+          ],
+          child: const MaterialApp(
+            home: HomeScreen(),
+          ),
         ),
       );
 
-      expect(find.text('Imaker Cunstuction'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.qr_code_scanner_rounded), findsWidgets);
+      expect(find.text('Key Site KPIs'), findsOneWidget);
+      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(find.text('Register Labour'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Safety Alerts & Incidents'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Safety Alerts & Incidents'), findsOneWidget);
+      expect(find.text("Today's Schedule & Activities"), findsOneWidget);
+
+      // Tap Safety Alerts tile to open separate SafetyAlertsScreen
+      await tester.tap(find.text('Safety Alerts & Incidents'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SafetyAlertsScreen), findsOneWidget);
+
+      // Pop back to home
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      // Tap Today's Schedule tile to open separate TodayActivitiesScreen
+      await tester.tap(find.text("Today's Schedule & Activities"));
+      await tester.pumpAndSettle();
+      expect(find.byType(TodayActivitiesScreen), findsOneWidget);
     });
 
     testWidgets('SizeUtil provides dynamic height, width and padding', (tester) async {
@@ -244,6 +293,40 @@ void main() {
       // Should have pushed ThemeSelectionScreen
       expect(find.byType(ThemeSelectionScreen), findsOneWidget);
       expect(find.text('SELECT THEME'), findsOneWidget);
+    });
+
+    testWidgets('MainNavScreen renders all 5 bottom navigation tabs', (tester) async {
+      final themeBloc = ThemeBloc();
+      final authBloc = AuthBloc(authRepository: _FakeAuthRepository());
+      final safetyBloc = SafetyDashboardBloc(repository: SafetyDashboardRepositoryImpl())
+        ..add(const LoadSafetyDashboard());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<ThemeBloc>.value(value: themeBloc),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SafetyDashboardBloc>.value(value: safetyBloc),
+          ],
+          child: const MaterialApp(
+            home: MainNavScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Check all 5 tabs exist
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Workforce'), findsOneWidget);
+      expect(find.text('Safety'), findsOneWidget);
+      expect(find.text('Tasks'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
+
+      // Check Safety Dashboard header content
+      expect(find.byIcon(Icons.qr_code_scanner_rounded), findsWidgets);
+      expect(find.text('Raise SOS Alert'), findsOneWidget);
+      expect(find.text('Key Site KPIs'), findsOneWidget);
     });
   });
 }
